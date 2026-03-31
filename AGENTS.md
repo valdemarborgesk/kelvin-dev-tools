@@ -10,7 +10,7 @@ The user is **not a developer**. They describe what they want in plain language 
 
 - **Explain what you're doing** in simple terms before and after each step. Don't just run commands silently. Example: "I'm checking what apps are deployed on beta..." not just running `kelvin workload list`.
 - **Never ask technical questions** the user can't answer. Don't ask "what's the cluster name?" — look it up yourself with `tools/clusters.py`. Don't ask "what's the data stream name?" — list them with `tools/datastreams.py`.
-- **Read docs and explore before asking the user.** If something fails, check the platform docs (`kelvin-ai-docs/docs-ai/`), check logs, try alternative approaches. Only ask the user when you genuinely need a human decision (which environment, what the app should do, whether to deploy).
+- **Read docs and explore before asking the user.** If something fails, check the platform docs (`docs/`), check logs, try alternative approaches. Only ask the user when you genuinely need a human decision (which environment, what the app should do, whether to deploy).
 - **Anticipate problems.** If an operation needs a prerequisite (asset type must exist before creating an asset, app must be uploaded before deploying), check and handle it automatically.
 - **If the SDK doesn't work, use the API.** Some SDK CLI commands have bugs or require complex config files. The REST API is often more straightforward. See "Known Workarounds" below.
 - **Keep it conversational.** Say "Your app is deployed and running!" not "Workload my-app deployed successfully with status running on cluster beta-cluster-01 node beta-node-01."
@@ -48,7 +48,7 @@ End-to-end lifecycle for building a Kelvin SmartApp:
 - **ALWAYS dry-run first** for destructive operations.
 - **ASK before** deploying to any environment or deleting resources.
 - **API base path** — `/api/v4` (not `/api/v1`).
-- **If the SDK CLI is giving trouble, check if there's an equivalent API call.** The REST API is often simpler and more reliable. Check `kelvin-ai-docs/docs-ai/api/endpoints/` for the endpoint reference.
+- **If the SDK CLI is giving trouble, check if there's an equivalent API call.** The REST API is often simpler and more reliable. Check `docs/api/endpoints/` for the endpoint reference.
 - **SDK version must match the platform.** After login, check for version mismatch warnings (`Current: X Recommended: Y`). If mismatched, install the recommended version: `venv/bin/pip install kelvin-sdk==<recommended>`.
 - **Always verify API endpoints against the platform's OpenAPI spec.** After first login, fetch the spec: `venv/bin/python tools/api_spec.py --env <env> fetch`. Before using any unfamiliar endpoint, check it exists: `venv/bin/python tools/api_spec.py --env <env> check /path METHOD`.
 - Docker must be running for `kelvin app build`, `kelvin app upload`, and `kelvin app test`.
@@ -169,14 +169,13 @@ For concepts, API schemas, SDK classes, and how-to guides:
 
 | Topic | Path |
 |-------|------|
-| Concepts (assets, data streams, apps) | `kelvin-ai-docs/docs-ai/concepts/` |
-| REST API endpoints | `kelvin-ai-docs/docs-ai/api/endpoints/` |
-| API schemas | `kelvin-ai-docs/docs-ai/api/schemas/` |
-| Python SDK (KelvinApp, filters, streams) | `kelvin-ai-docs/docs-ai/sdk/` |
-| Development how-to guides | `kelvin-ai-docs/docs-ai/how-to/development/` |
-| Infrastructure (k3s, NATS, clusters) | `kelvin-ai-docs/docs-ai/infra/` |
+| Concepts (assets, data streams, apps) | `docs/concepts/` |
+| REST API endpoints | `docs/api/endpoints/` |
+| API schemas | `docs/api/schemas/` |
+| Python SDK (KelvinApp, filters, streams) | `docs/sdk/` |
+| Development how-to guides | `docs/how-to/development/` |
 
-See `kelvin-ai-docs/docs-ai/agents.md` for detailed query strategies.
+See `docs/agents.md` for detailed query strategies.
 
 ## Common Failure Modes
 
@@ -235,6 +234,6 @@ To find the cluster and node names, use `venv/bin/python tools/clusters.py --env
 ### General approach when something doesn't work
 
 1. **Check the logs** — `kelvin workload logs <name>` or the command output
-2. **Read the docs** — search `kelvin-ai-docs/docs-ai/` for the relevant topic
+2. **Read the docs** — search `docs/` for the relevant topic
 3. **Try the API** — the REST API at `/api/v4` often works when the SDK CLI doesn't
 4. **Don't ask the user technical questions** — figure it out yourself or explain the problem in simple terms

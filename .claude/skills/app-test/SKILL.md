@@ -55,4 +55,4 @@ kelvin app test generator [--app-dir <path>]
 
 - ALWAYS use the venv.
 - The `--app-dir` flag is optional — defaults to current directory.
-- Point to `kelvin-ai-docs/docs-ai/how-to/development/` for testing guides if the user needs more detail.
+- Point to `docs/how-to/development/` for testing guides if the user needs more detail.

@@ -77,13 +77,13 @@ Then clone:
 
 ```bash
 mkdir -p ~/work && cd ~/work
-git clone --recursive git@github.com:valdemarborgesk/kelvin-dev-tools.git
+git clone git@github.com:valdemarborgesk/kelvin-dev-tools.git
 ```
 
 If the clone fails with "Permission denied (publickey)", try HTTPS:
 
 ```bash
-git clone --recursive https://github.com/valdemarborgesk/kelvin-dev-tools.git
+git clone https://github.com/valdemarborgesk/kelvin-dev-tools.git
 ```
 
 After cloning, set `REPO_PATH` to the full path where it landed (e.g., `~/work/kelvin-dev-tools`).

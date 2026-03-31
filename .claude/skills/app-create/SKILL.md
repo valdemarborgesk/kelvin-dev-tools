@@ -39,5 +39,5 @@ Default app type is `app` (SmartApp). Other types: `importer`, `exporter`, `dock
 
 - App names must be lowercase alphanumeric with hyphens or underscores.
 - Don't create apps in the kelvin-dev-tools root — create in a separate directory or the user's project directory.
-- After creation, point the user to `kelvin-ai-docs/docs-ai/how-to/development/` for development guides.
+- After creation, point the user to `docs/how-to/development/` for development guides.
 - ALWAYS use the venv.
