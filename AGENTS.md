@@ -18,8 +18,15 @@ The user is **not a developer**. They describe what they want in plain language 
 ## Quick Setup
 
 ```bash
-bash scripts/setup.sh
-source venv/bin/activate
+python3 scripts/setup.py    # macOS/Linux
+python scripts/setup.py     # Windows
+```
+
+Then activate and log in:
+```bash
+source venv/bin/activate           # macOS/Linux
+venv\Scripts\activate              # Windows
+
 kelvin auth login https://<env-url>
 ```
 
