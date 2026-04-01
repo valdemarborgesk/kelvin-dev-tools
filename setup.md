@@ -25,6 +25,9 @@ Set these variables based on the OS (use them in all subsequent commands):
 | `ACTIVATE` | `source venv/bin/activate` | `venv\Scripts\activate` |
 | `KELVIN` | `venv/bin/kelvin` | `venv\Scripts\kelvin.exe` |
 | `VENV_PYTHON` | `venv/bin/python` | `venv\Scripts\python.exe` |
+| `VENV_PIP` | `venv/bin/pip` | `venv\Scripts\pip.exe` |
+
+> **IMPORTANT — always use full venv paths.** Never call bare `kelvin`, `python`, or `pip` — always use `<REPO_PATH>/<KELVIN>`, `<REPO_PATH>/<VENV_PYTHON>`, etc. Most AI agents run each command in a fresh shell, so `source activate` does not persist. Full paths always work.
 
 ## Step 2: Ask the user about their current state
 
@@ -160,7 +163,7 @@ If a token is returned, login succeeded. If not, ask them to try again.
 Run a quick check:
 
 ```bash
-<ACTIVATE> && kelvin workload list 2>&1 | head -5
+<REPO_PATH>/<KELVIN> workload list 2>&1 | head -5
 ```
 
 If workloads are listed, everything is working. If it errors, troubleshoot (likely auth issue — go back to step 5).
