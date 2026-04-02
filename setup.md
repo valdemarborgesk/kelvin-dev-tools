@@ -103,10 +103,14 @@ If anything is missing, tell the user what to install and **wait for them to con
 
 > **Linux note:** The `python3-venv` package is required on Debian/Ubuntu — without it, `python3 -m venv` will fail.
 
-Then clone:
+Then clone. Check the current working directory first and ask the user:
+
+> **I'll clone Kelvin Dev Tools into the current folder (`<CWD>`). Is that OK, or would you prefer a different location?**
+
+Once confirmed (or the user provides a different path):
 
 ```bash
-mkdir -p ~/work && cd ~/work
+cd <chosen-folder>
 git clone git@github.com:valdemarborgesk/kelvin-dev-tools.git
 ```
 
@@ -116,9 +120,7 @@ If the clone fails with "Permission denied (publickey)", try HTTPS:
 git clone https://github.com/valdemarborgesk/kelvin-dev-tools.git
 ```
 
-> **Windows note:** Use PowerShell (where `~` works) or substitute `%USERPROFILE%\work`.
-
-After cloning, set `REPO_PATH` to the full path where it landed (e.g., `~/work/kelvin-dev-tools`).
+Set `REPO_PATH` to the full path where it landed (e.g., `<chosen-folder>/kelvin-dev-tools`).
 
 ## Step 4: Run setup
 
