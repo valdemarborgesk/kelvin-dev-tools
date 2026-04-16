@@ -23,11 +23,35 @@ Then ask:
 
 > **How would you like to proceed?**
 >
-> 1. **Do it for me** — I'll handle everything automatically with minimal interruptions
-> 2. **Walk me through it** — explain each step and ask before proceeding
+> 1. **Do it for me** — set everything up automatically, I'll only interrupt if something needs a decision
+> 2. **Walk me through it** — tell me what each step does, I'll run the commands myself and you check my progress
+> 3. **Show me exactly what gets installed first** — give me a full breakdown before we start
 
-- **Option 1:** proceed through all steps using sensible defaults, only pausing if a decision is genuinely needed (e.g. choosing an install location) or if a step fails.
-- **Option 2:** pause before each step, explain what it does, and wait for confirmation.
+- **Option 1:** proceed through all steps automatically using sensible defaults, only pausing for genuine decisions or failures.
+- **Option 2:** for each step, explain what it does and why, then provide the command for the user to run themselves. Wait for them to confirm it worked before moving on.
+- **Option 3:** before doing anything, give the user a detailed breakdown of everything that will be installed (see below), then ask whether to proceed with option 1 or 2.
+
+If the user picks **option 3**, explain the following in plain language:
+
+> Here is everything that will be installed:
+>
+> **1. The repository** — cloned from GitHub into a folder you choose. Contains all the tools, skills, and configuration.
+>
+> **2. Python virtual environment** — an isolated Python environment just for this toolkit, so nothing interferes with other software on your computer.
+>
+> **3. Kelvin SDK** — the official Kelvin Python library (version 9.x). This is what lets the AI talk to the Kelvin platform — list assets, deploy apps, view logs, etc.
+>
+> **4. Supporting packages** — a set of Python libraries the SDK depends on (HTTP client, YAML parser, Docker integration, etc.). All installed automatically.
+>
+> **5. AI skills** — 15 pre-built skills the AI uses to handle specific tasks: logging in, creating apps, deploying, viewing logs, checking data, managing assets, and more.
+>
+> **6. Platform documentation** — a local copy of Kelvin's API, SDK, and concept docs. The AI reads these to answer your questions accurately without needing internet access.
+>
+> **7. Environment configuration** — a list of Kelvin environment URLs (31 environments) so you can refer to environments by name instead of full URL.
+>
+> Nothing is installed system-wide — everything stays inside the folder we create. You can delete the folder at any time to remove it completely.
+
+Then ask: **"Ready to start? [1] Do it for me / [2] Walk me through it"** and proceed accordingly.
 
 Either way, follow the steps below. The user may not be technical — use plain language throughout.
 
@@ -124,17 +148,38 @@ print(f'Python version: {sys.version}')
 "
 ```
 
-If anything is missing, tell the user what to install and **wait for them to confirm** before continuing:
+If Git is missing, tell the user what to install and **wait for them to confirm** before continuing:
 
 | Tool | macOS | Linux (Debian/Ubuntu) | Linux (Fedora/RHEL) | Windows |
 |------|-------|-----------------------|---------------------|---------|
-| Python 3.9–3.13 | `brew install python3` | `sudo apt install python3 python3-venv` | `sudo dnf install python3` | Download from python.org (**not 3.14+**) |
 | Git | `brew install git` | `sudo apt install git` | `sudo dnf install git` | Download from git-scm.com |
-| Docker | Docker Desktop from docker.com | `sudo apt install docker.io` | `sudo dnf install docker` | Docker Desktop from docker.com |
 
-> **Python version note:** The Kelvin SDK requires Python >=3.9 and <3.14. If the user has Python 3.14+ as their default, they need to install 3.12 or 3.13 and use that version to create the venv.
+> **Python note:** The setup script handles Python automatically — it will find a compatible version or install one if needed. You don't need to do anything manually.
 
-> **Linux note:** The `python3-venv` package is required on Debian/Ubuntu — without it, `python3 -m venv` will fail.
+> **Linux note:** The `python3-venv` package is required on Debian/Ubuntu. The setup script will warn if it's missing: `sudo apt install python3-venv`.
+
+**Docker:** Docker is required to build and test apps. Check whether it's installed and running:
+
+```bash
+docker info 2>&1 | head -5
+```
+
+- **If the command is not found** — Docker is not installed. Guide the user through installation:
+
+  | macOS | Linux (Debian/Ubuntu) | Linux (Fedora/RHEL) | Windows |
+  |-------|-----------------------|---------------------|---------|
+  | Download **Docker Desktop** from docker.com/products/docker-desktop | `sudo apt install docker.io && sudo systemctl enable --now docker` | `sudo dnf install docker && sudo systemctl enable --now docker` | Download **Docker Desktop** from docker.com/products/docker-desktop |
+
+  On macOS and Windows, tell the user: *"Open Docker Desktop once it's installed and wait for the whale icon to appear in your menu bar / system tray before continuing."*
+
+  After installation, verify:
+  ```bash
+  docker info 2>&1 | head -3
+  ```
+
+- **If the command is found but returns an error** — Docker is installed but not running. Tell the user to open Docker Desktop (macOS/Windows) or run `sudo systemctl start docker` (Linux), then wait for it to start before continuing.
+
+- **If it succeeds** — Docker is ready, continue.
 
 Then clone. Check the current working directory first and ask the user:
 
