@@ -43,8 +43,8 @@ def find_compatible_python():
         print(f"  Python {v.major}.{v.minor} OK")
         return sys.executable
 
-    print(f"  Python {v.major}.{v.minor} is not compatible (need >=3.9, <3.14)")
-    print("  Searching for a compatible Python installation...")
+    print(f"  Python {v.major}.{v.minor} is not supported — version 3.9 or newer is needed.")
+    print("  Searching for a compatible Python version...")
 
     # Search for specific versioned binaries, newest first
     candidates = []
@@ -85,7 +85,7 @@ def find_compatible_python():
             if result.returncode == 0:
                 major, minor = map(int, result.stdout.strip().split())
                 if MIN_PYTHON <= (major, minor) < MAX_PYTHON:
-                    print(f"  Found Python {major}.{minor} at {path}")
+                    print(f"  Found Python {major}.{minor}.")
                     return path
         except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
             continue
@@ -96,14 +96,21 @@ def find_compatible_python():
 def install_python():
     """Install Python 3.13 and return the path to the executable."""
     target = "3.13"
-    print(f"  No compatible Python found. Installing Python {target}...")
+    print(f"  Python not found — installing Python {target}...")
 
     if IS_MAC:
         if not shutil.which("brew"):
-            print("ERROR: Homebrew not found. Install it from https://brew.sh, then re-run setup.")
+            print("ERROR: Homebrew is not installed.")
+            print("  Install it from https://brew.sh, then run setup again.")
             sys.exit(1)
-        print(f"  Running: brew install python@{target}")
-        subprocess.run(["brew", "install", f"python@{target}"], check=True)
+        print(f"  Installing Python {target} via Homebrew (this may take a few minutes)...")
+        try:
+            subprocess.run(["brew", "install", f"python@{target}"], check=True)
+        except subprocess.CalledProcessError:
+            print("ERROR: Python installation failed.")
+            print("  Check your internet connection and try again, or download Python manually:")
+            print("  https://www.python.org/downloads/")
+            sys.exit(1)
         path = shutil.which(f"python{target}") or shutil.which(f"python@{target}")
         if not path:
             # Homebrew sometimes needs the full path
@@ -115,16 +122,17 @@ def install_python():
             if candidate.exists():
                 path = str(candidate)
         if path:
-            print(f"  Installed Python {target} at {path}")
+            print(f"  Python {target} installed.")
             return path
-        print("ERROR: brew install succeeded but python binary not found")
+        print("ERROR: Python was installed but could not be found.")
+        print("  Restart your terminal and run setup again.")
         sys.exit(1)
 
     elif IS_WINDOWS:
-        # Use winget if available, otherwise fall back to py launcher or manual install
+        # Use winget if available, otherwise fall back to manual install
         winget = shutil.which("winget")
         if winget:
-            print(f"  Running: winget install Python.Python.{target}")
+            print(f"  Downloading and installing Python {target}...")
             result = subprocess.run(
                 ["winget", "install", f"Python.Python.{target}", "--accept-source-agreements", "--accept-package-agreements"],
                 capture_output=True, text=True,
@@ -145,20 +153,20 @@ def install_python():
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         pass
                 if path:
-                    print(f"  Installed Python {target} at {path}")
+                    print(f"  Python {target} installed.")
                     return path
-        print(f"ERROR: Could not auto-install Python {target} on Windows.")
+        print(f"ERROR: Could not install Python automatically.")
         print(f"  Please download Python {target} from https://www.python.org/downloads/")
-        print("  Then re-run this setup script.")
+        print("  After installing, run setup again.")
         sys.exit(1)
 
     else:
         # Linux
-        print(f"ERROR: Could not auto-install Python {target} on Linux.")
-        print(f"  Install it manually:")
-        print(f"    Ubuntu/Debian: sudo apt install python{target} python{target}-venv")
-        print(f"    Fedora/RHEL:  sudo dnf install python{target}")
-        print("  Then re-run this setup script.")
+        print(f"ERROR: Python {target} is not installed.")
+        print(f"  Install it with your package manager:")
+        print(f"    Ubuntu/Debian:  sudo apt install python{target} python{target}-venv")
+        print(f"    Fedora/RHEL:   sudo dnf install python{target}")
+        print("  Then run setup again.")
         sys.exit(1)
 
 
@@ -175,63 +183,61 @@ def create_venv(python_exe):
                 if result.returncode == 0:
                     major, minor = map(int, result.stdout.strip().split())
                     if MIN_PYTHON <= (major, minor) < MAX_PYTHON:
-                        print(f"  venv/ already exists (Python {major}.{minor})")
+                        print(f"  Tools environment already set up.")
                         return
                     else:
-                        print(f"  venv/ exists but uses Python {major}.{minor} (incompatible)")
-                        print("  Recreating venv...")
+                        print(f"  Tools environment needs updating...")
                         shutil.rmtree(VENV_DIR)
             except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
                 pass
         else:
-            print("  venv/ exists but looks broken, recreating...")
+            print("  Tools environment looks damaged — rebuilding...")
             shutil.rmtree(VENV_DIR)
 
-    print(f"  Creating virtual environment with {python_exe}...")
-    subprocess.run([python_exe, "-m", "venv", str(VENV_DIR)], check=True)
+    print(f"  Setting up tools environment...")
+    try:
+        subprocess.run([python_exe, "-m", "venv", str(VENV_DIR)], check=True)
+    except subprocess.CalledProcessError:
+        print("ERROR: Could not set up the tools environment.")
+        print("  Try running setup again. If it keeps failing, restart your terminal first.")
+        sys.exit(1)
 
 
 def install_deps():
-    print("  Installing dependencies...")
-    subprocess.run([str(PIP), "install", "-q", "--upgrade", "pip"], check=True)
-    req = REPO_ROOT / "requirements.txt"
-    if req.exists():
-        subprocess.run([str(PIP), "install", "-q", "-r", str(req)], check=True)
-    else:
-        print("  WARNING: requirements.txt not found")
+    print("  Installing Kelvin packages...")
+    try:
+        subprocess.run([str(PIP), "install", "-q", "--upgrade", "pip"], check=True)
+        req = REPO_ROOT / "requirements.txt"
+        if req.exists():
+            subprocess.run([str(PIP), "install", "-q", "-r", str(req)], check=True)
+        else:
+            print("  WARNING: Package list not found — some files may be missing from the download.")
+    except subprocess.CalledProcessError:
+        print("ERROR: Could not install required packages.")
+        print("  Check your internet connection and try running setup again.")
+        sys.exit(1)
 
 
-def configure_windows_keyring():
-    """Install keyrings.alt and configure keyring to use file-based storage.
+def configure_windows_login():
+    """Configure login credential storage on Windows.
 
-    The Windows Credential Manager has a 2560-byte limit on credential values.
-    Kelvin tokens (access + refresh as JSON) often exceed this, causing
-    'Failed to store credentials' errors during auth.
-
-    keyrings.alt.file.PlaintextKeyring has no size limit and is read by both
-    auth-dialog.py and the kelvin CLI (via keyring.cfg auto-discovery).
-
-    Credentials are stored in plaintext at:
-      %LOCALAPPDATA%\\Python Keyring\\keyring_pass.cfg
+    Windows Credential Manager limits stored values to 2560 bytes.
+    Kelvin login tokens often exceed this, causing auth failures.
+    This installs a file-based alternative with no size limit.
     """
-    import os
+    print("  Configuring login storage...")
 
-    print("  Configuring keyring backend for Windows...")
-
-    # Install keyrings.alt (file-based keyring backend with no size limit)
     result = subprocess.run(
         [str(PIP), "install", "-q", "keyrings.alt"],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
-        print("  WARNING: Could not install keyrings.alt — auth may fail for large tokens")
+        print("  WARNING: Login storage setup failed — you may see errors when logging in.")
         return
 
-    # Write keyring.cfg so both auth-dialog.py and the kelvin CLI use PlaintextKeyring
-    # Windows config path: %APPDATA%\Python Keyring\keyring.cfg
     appdata = os.environ.get("APPDATA", "")
     if not appdata:
-        print("  WARNING: APPDATA not set — skipping keyring.cfg write")
+        print("  WARNING: Could not configure login storage — you may see errors when logging in.")
         return
 
     cfg_dir = Path(appdata) / "Python Keyring"
@@ -241,7 +247,7 @@ def configure_windows_keyring():
         "[backend]\ndefault-keyring=keyrings.alt.file.PlaintextKeyring\n",
         encoding="utf-8",
     )
-    print(f"  Keyring configured: file-based backend (no size limit)")
+    print("  Login storage configured.")
 
 
 def check_kelvin():
@@ -252,24 +258,24 @@ def check_kelvin():
         )
         if result.returncode == 0:
             ver = result.stdout.strip().splitlines()[0]
-            print(f"  Kelvin SDK: {ver}")
+            print(f"  Kelvin: {ver}")
         else:
-            print("  WARNING: kelvin CLI not available (SDK install may have failed)")
+            print("  WARNING: Kelvin tools not found — try running setup again.")
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        print("  WARNING: kelvin CLI not available (SDK install may have failed)")
+        print("  WARNING: Kelvin tools not found — try running setup again.")
 
 
 def check_docs():
     docs = REPO_ROOT / "docs"
     if docs.is_dir():
-        print("  Platform docs: available")
+        print("  Platform documentation: available")
     else:
-        print("  WARNING: docs/ directory not found")
+        print("  WARNING: Platform documentation not found.")
 
 
 def check_docker():
     if not shutil.which("docker"):
-        print("  WARNING: Docker not found (needed for kelvin app build/test)")
+        print("  WARNING: Docker not found (needed for app build/test)")
         return
     try:
         result = subprocess.run(
@@ -278,9 +284,9 @@ def check_docker():
         if result.returncode == 0:
             print("  Docker: available")
         else:
-            print("  WARNING: Docker not running (needed for kelvin app build/test)")
+            print("  WARNING: Docker is not running (needed for app build/test)")
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        print("  WARNING: Docker not running (needed for kelvin app build/test)")
+        print("  WARNING: Docker is not running (needed for app build/test)")
 
 
 def main():
@@ -294,7 +300,7 @@ def main():
     create_venv(python_exe)
     install_deps()
     if IS_WINDOWS:
-        configure_windows_keyring()
+        configure_windows_login()
     check_kelvin()
     check_docs()
     check_docker()
