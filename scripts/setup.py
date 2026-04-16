@@ -31,13 +31,54 @@ MIN_PYTHON = (3, 9)
 MAX_PYTHON = (3, 14)  # exclusive — SDK requires <3.14
 
 
-def find_compatible_python():
-    """Find the best compatible Python on the system.
+def find_python_version(major, minor):
+    """Find a specific Python version installed on the system. Returns path or None."""
+    v = sys.version_info
+    if (v.major, v.minor) == (major, minor):
+        return sys.executable
 
-    Returns the path to a compatible Python executable, or None.
-    Checks the running Python first, then searches for python3.13 down to python3.9.
-    """
-    # Check if the Python running this script is already compatible
+    candidates = []
+    if IS_WINDOWS:
+        names = [f"python{major}.{minor}", f"python{major}{minor}"]
+    else:
+        names = [f"python{major}.{minor}"]
+
+    for name in names:
+        path = shutil.which(name)
+        if path:
+            candidates.append(path)
+
+    if IS_WINDOWS:
+        py = shutil.which("py")
+        if py:
+            try:
+                result = subprocess.run(
+                    [py, f"-{major}.{minor}", "-c", "import sys; print(sys.executable)"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    candidates.append(result.stdout.strip())
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+
+    for path in candidates:
+        try:
+            result = subprocess.run(
+                [path, "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0:
+                m, n = map(int, result.stdout.strip().split())
+                if (m, n) == (major, minor):
+                    return path
+        except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
+            continue
+
+    return None
+
+
+def find_compatible_python():
+    """Find the best compatible Python on the system. Returns path or None."""
     v = sys.version_info
     if MIN_PYTHON <= (v.major, v.minor) < MAX_PYTHON:
         print(f"  Python {v.major}.{v.minor} OK")
@@ -46,57 +87,19 @@ def find_compatible_python():
     print(f"  Python {v.major}.{v.minor} is not supported — version 3.9 or newer is needed.")
     print("  Searching for a compatible Python version...")
 
-    # Search for specific versioned binaries, newest first
-    candidates = []
-    for minor in range(13, 8, -1):  # 3.13 down to 3.9
-        if IS_WINDOWS:
-            names = [f"python3.{minor}", f"python3{minor}", "py"]
-        else:
-            names = [f"python3.{minor}"]
-        for name in names:
-            path = shutil.which(name)
-            if path:
-                candidates.append((path, minor))
-
-    # Also check Windows py launcher which can target specific versions
-    if IS_WINDOWS:
-        py = shutil.which("py")
-        if py:
-            for minor in range(13, 8, -1):
-                try:
-                    result = subprocess.run(
-                        [py, f"-3.{minor}", "-c", "import sys; print(sys.executable)"],
-                        capture_output=True, text=True, timeout=10,
-                    )
-                    if result.returncode == 0:
-                        exe = result.stdout.strip()
-                        if exe:
-                            candidates.append((exe, minor))
-                except (subprocess.TimeoutExpired, FileNotFoundError):
-                    continue
-
-    # Verify candidates actually work and are the right version
-    for path, expected_minor in candidates:
-        try:
-            result = subprocess.run(
-                [path, "-c", "import sys; print(sys.version_info.major, sys.version_info.minor)"],
-                capture_output=True, text=True, timeout=10,
-            )
-            if result.returncode == 0:
-                major, minor = map(int, result.stdout.strip().split())
-                if MIN_PYTHON <= (major, minor) < MAX_PYTHON:
-                    print(f"  Found Python {major}.{minor}.")
-                    return path
-        except (subprocess.TimeoutExpired, FileNotFoundError, ValueError):
-            continue
+    for minor in range(MAX_PYTHON[1] - 1, MIN_PYTHON[1] - 1, -1):
+        path = find_python_version(3, minor)
+        if path:
+            print(f"  Found Python 3.{minor}.")
+            return path
 
     return None
 
 
-def install_python():
-    """Install Python 3.13 and return the path to the executable."""
-    target = "3.13"
-    print(f"  Python not found — installing Python {target}...")
+def install_python(major, minor):
+    """Install a specific Python version. Returns path to executable."""
+    target = f"{major}.{minor}"
+    print(f"  Python {target} not found — installing...")
 
     if IS_MAC:
         if not shutil.which("brew"):
@@ -111,7 +114,7 @@ def install_python():
             print("  Check your internet connection and try again, or download Python manually:")
             print("  https://www.python.org/downloads/")
             sys.exit(1)
-        path = shutil.which(f"python{target}") or shutil.which(f"python@{target}")
+        path = find_python_version(major, minor)
         if not path:
             # Homebrew sometimes needs the full path
             brew_prefix = subprocess.run(
@@ -129,7 +132,6 @@ def install_python():
         sys.exit(1)
 
     elif IS_WINDOWS:
-        # Use winget if available, otherwise fall back to manual install
         winget = shutil.which("winget")
         if winget:
             print(f"  Downloading and installing Python {target}...")
@@ -138,20 +140,7 @@ def install_python():
                 capture_output=True, text=True,
             )
             if result.returncode == 0:
-                # winget installs python, find it
-                path = shutil.which(f"python{target}") or shutil.which("python")
-                # Also try the py launcher
-                py = shutil.which("py")
-                if py:
-                    try:
-                        r = subprocess.run(
-                            [py, f"-{target}", "-c", "import sys; print(sys.executable)"],
-                            capture_output=True, text=True, timeout=10,
-                        )
-                        if r.returncode == 0 and r.stdout.strip():
-                            path = r.stdout.strip()
-                    except (subprocess.TimeoutExpired, FileNotFoundError):
-                        pass
+                path = find_python_version(major, minor)
                 if path:
                     print(f"  Python {target} installed.")
                     return path
@@ -161,7 +150,6 @@ def install_python():
         sys.exit(1)
 
     else:
-        # Linux
         print(f"ERROR: Python {target} is not installed.")
         print(f"  Install it with your package manager:")
         print(f"    Ubuntu/Debian:  sudo apt install python{target} python{target}-venv")
@@ -172,7 +160,6 @@ def install_python():
 
 def create_venv(python_exe):
     if VENV_DIR.exists():
-        # Check if existing venv uses a compatible Python
         existing_python = VENV_BIN / ("python.exe" if IS_WINDOWS else "python")
         if existing_python.exists():
             try:
@@ -203,19 +190,63 @@ def create_venv(python_exe):
         sys.exit(1)
 
 
-def install_deps():
+def install_deps(retry=False):
+    """Install dependencies.
+
+    Returns a (major, minor) tuple if the user wants to retry with a different
+    Python version. Returns None on success. Exits on unrecoverable failure.
+    """
     print("  Installing Kelvin packages...")
-    try:
-        subprocess.run([str(PIP), "install", "-q", "--upgrade", "pip"], check=True)
-        req = REPO_ROOT / "requirements.txt"
-        if req.exists():
-            subprocess.run([str(PIP), "install", "-q", "-r", str(req)], check=True)
-        else:
-            print("  WARNING: Package list not found — some files may be missing from the download.")
-    except subprocess.CalledProcessError:
+
+    # Upgrade pip — non-fatal if this fails
+    subprocess.run(
+        [str(PIP), "install", "-q", "--upgrade", "pip"],
+        capture_output=True,
+    )
+
+    req = REPO_ROOT / "requirements.txt"
+    if not req.exists():
+        print("  WARNING: Package list not found — some files may be missing from the download.")
+        return None
+
+    result = subprocess.run(
+        [str(PIP), "install", "-q", "-r", str(req)],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        return None  # Success
+
+    # Installation failed
+    error = (result.stdout + result.stderr).strip()
+    v = sys.version_info
+    suggested = (v.major, v.minor - 1)
+
+    if retry:
         print("ERROR: Could not install required packages.")
-        print("  Check your internet connection and try running setup again.")
+        if error:
+            print()
+            print(error)
         sys.exit(1)
+
+    print(f"\n  Could not install packages for Python {v.major}.{v.minor}.")
+    print(f"  This sometimes happens when packages don't yet support the latest Python.")
+    print()
+    print(f"  [1] Try with Python {suggested[0]}.{suggested[1]} instead (recommended)")
+    print(f"  [2] Show the error details and exit")
+    try:
+        choice = input("  Choose [1]: ").strip() or "1"
+    except (EOFError, KeyboardInterrupt):
+        choice = "2"
+
+    if choice == "1":
+        return suggested
+
+    print()
+    if error:
+        print(error)
+        print()
+    print("ERROR: Could not install required packages.")
+    sys.exit(1)
 
 
 def configure_windows_login():
@@ -295,10 +326,22 @@ def main():
 
     python_exe = find_compatible_python()
     if not python_exe:
-        python_exe = install_python()
+        python_exe = install_python(3, MAX_PYTHON[1] - 1)
 
     create_venv(python_exe)
-    install_deps()
+
+    fallback = install_deps()
+    if fallback:
+        major, minor = fallback
+        print(f"\n  Looking for Python {major}.{minor}...")
+        fallback_exe = find_python_version(major, minor)
+        if not fallback_exe:
+            fallback_exe = install_python(major, minor)
+        print(f"  Rebuilding tools environment with Python {major}.{minor}...")
+        shutil.rmtree(VENV_DIR)
+        create_venv(fallback_exe)
+        install_deps(retry=True)
+
     if IS_WINDOWS:
         configure_windows_login()
     check_kelvin()
