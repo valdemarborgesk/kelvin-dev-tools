@@ -1,6 +1,35 @@
 # Kelvin Dev Tools — Setup
 
-You are setting up a developer environment for building Kelvin SmartApps. Follow these steps in order. Wait for each step to complete before moving on. The user may not be technical — use plain language and guide them through everything.
+You are an AI assistant helping a user set up Kelvin Dev Tools. Read this entire document before starting. Follow the steps in order.
+
+## Introduction
+
+Start by explaining what you're about to set up. Say this to the user in plain language:
+
+> **Kelvin Dev Tools** is a toolkit that lets you build, deploy, and manage Kelvin SmartApps just by chatting with an AI — no commands to memorise, no code required.
+>
+> **What gets installed:**
+> A folder on your computer containing the Kelvin SDK, a set of AI skills, and the platform documentation. Once it's set up, you point your AI tool at that folder and start chatting.
+>
+> **What you'll need:**
+> - An internet connection
+> - Your Kelvin username and password
+> - Git (we'll check, and help you install it if it's missing)
+> - Docker (needed to build and test apps — we'll let you know if it's missing)
+>
+> **We'll also need a folder** to install everything into. You can choose where, or I'll suggest a location.
+
+Then ask:
+
+> **How would you like to proceed?**
+>
+> 1. **Do it for me** — I'll handle everything automatically with minimal interruptions
+> 2. **Walk me through it** — explain each step and ask before proceeding
+
+- **Option 1:** proceed through all steps using sensible defaults, only pausing if a decision is genuinely needed (e.g. choosing an install location) or if a step fails.
+- **Option 2:** pause before each step, explain what it does, and wait for confirmation.
+
+Either way, follow the steps below. The user may not be technical — use plain language throughout.
 
 ## Step 0: Verify you can run commands
 
@@ -18,14 +47,16 @@ This returns `Darwin` (macOS), `Linux`, or `Windows`. Remember this as `OS`.
 
 Set these variables based on the OS (use them in all subsequent commands):
 
-| Variable | macOS / Linux | Windows |
-|----------|--------------|---------|
+| Variable | macOS / Linux | Windows (cmd/PowerShell) |
+|----------|--------------|-------------------------|
 | `PYTHON` | `python3` | `python` |
-| `VENV_BIN` | `venv/bin` | `venv\Scripts` |
-| `ACTIVATE` | `source venv/bin/activate` | `venv\Scripts\activate` |
-| `KELVIN` | `venv/bin/kelvin` | `venv\Scripts\kelvin.exe` |
-| `VENV_PYTHON` | `venv/bin/python` | `venv\Scripts\python.exe` |
-| `VENV_PIP` | `venv/bin/pip` | `venv\Scripts\pip.exe` |
+| `VENV_BIN` | `venv/bin` | `venv\\Scripts` |
+| `ACTIVATE` | `source venv/bin/activate` | `venv\\Scripts\\activate` |
+| `KELVIN` | `venv/bin/kelvin` | `venv\\Scripts\\kelvin.exe` |
+| `VENV_PYTHON` | `venv/bin/python` | `venv\\Scripts\\python.exe` |
+| `VENV_PIP` | `venv/bin/pip` | `venv\\Scripts\\pip.exe` |
+
+> **Windows path note:** In cmd.exe use single backslashes (`venv\Scripts\activate`). In PowerShell and Python strings, backslashes must be doubled (`venv\\Scripts\\activate`) or use forward slashes (`venv/Scripts/activate`) which also work on Windows.
 
 > **IMPORTANT — always activate the venv before running commands.** Never call bare `kelvin`, `python`, or `pip` without activating first. Activate and run in the same command: `<ACTIVATE> && kelvin ...`. If your agent runs each command in a separate shell, chain them: `cd <REPO_PATH> && <ACTIVATE> && kelvin workload list`. Alternatively, use full venv paths: `<REPO_PATH>/<KELVIN>`, `<REPO_PATH>/<VENV_PYTHON>`, etc.
 
@@ -97,9 +128,11 @@ If anything is missing, tell the user what to install and **wait for them to con
 
 | Tool | macOS | Linux (Debian/Ubuntu) | Linux (Fedora/RHEL) | Windows |
 |------|-------|-----------------------|---------------------|---------|
-| Python 3.9+ | `brew install python3` | `sudo apt install python3 python3-venv` | `sudo dnf install python3` | Download from python.org |
+| Python 3.9–3.13 | `brew install python3` | `sudo apt install python3 python3-venv` | `sudo dnf install python3` | Download from python.org (**not 3.14+**) |
 | Git | `brew install git` | `sudo apt install git` | `sudo dnf install git` | Download from git-scm.com |
 | Docker | Docker Desktop from docker.com | `sudo apt install docker.io` | `sudo dnf install docker` | Docker Desktop from docker.com |
+
+> **Python version note:** The Kelvin SDK requires Python >=3.9 and <3.14. If the user has Python 3.14+ as their default, they need to install 3.12 or 3.13 and use that version to create the venv.
 
 > **Linux note:** The `python3-venv` package is required on Debian/Ubuntu — without it, `python3 -m venv` will fail.
 
